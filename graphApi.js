@@ -4,8 +4,7 @@ const
   config = require("./config"),
   https = require('https'),
   FB = require('fb');
-// Endpoint for messages
-let MESSAGE_URL = "/me/messages";
+
 FB.setAccessToken(config.messagePageAccessToken);
 
 module.exports = class GraphAPi{

@@ -41,8 +41,6 @@ module.exports = class GoogleSheetsApi{
 
     // Check if we have previously stored a token.
     fs.readFile(TOKEN_PATH, (err, token) => {
-      console.log(this);
-
       if (err) return this.getNewToken(oAuth2Client, callback);
       oAuth2Client.setCredentials(JSON.parse(token));
       callback(this, oAuth2Client);
@@ -88,7 +86,7 @@ module.exports = class GoogleSheetsApi{
    * @param {function} wrapMessage Function for packaging a FB message.
    * @param {function} sendMessageApi Function for sendind FB message.
    */
-  getConfessions(recipientID, startRange, wrapMessage, sendMessageApi) {
+  getSubmissions(recipientID, startRange, wrapMessage, sendMessageApi) {
     let auth = this.auth;
     if (auth) {
       const sheets = google.sheets({version: 'v4', auth});
@@ -114,7 +112,7 @@ module.exports = class GoogleSheetsApi{
           this.lastRead = Math.max(startRange+rows.length, this.lastRead);
           return rows;
         } else {
-          sendMessageApi(wrapMessage(recipientID, "No new pages!"));
+          sendMessageApi(wrapMessage(recipientID, "No new submissions!"));
         }
       });
     }
@@ -158,7 +156,7 @@ module.exports = class GoogleSheetsApi{
     };
     try {
       let auth = this.auth;
-      // Do we have a valid auth. 
+      // Do we have a valid auth.
       if (auth) {
         const sheets = google.sheets({version: 'v4', auth});
         const result = await sheets.spreadsheets.batchUpdate(request);

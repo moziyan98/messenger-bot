@@ -141,18 +141,20 @@ function receivedMessage(event) {
   if (messageText) {
     switch (messageText.replace(/[^\w\s]/gi, '').trim().toLowerCase()) {
       case 'check':
-        getLatestConfessions(senderID);
+        getLatestSubmissions(senderID);
         break;
       case 'check unread':
-        getUnreadConfessions(senderID);
+        getUnreadSubmissions(senderID);
         break;
       case 'yes':
-        updateSheet(reply_mid, senderID, true);
+        updateSheet(reply_mid, senderID, true, false);
         break;
       case 'no':
-        updateSheet(reply_mid, senderID, false);
+        updateSheet(reply_mid, senderID, false, false);
         break;
       case 'manual':
+        updateSheet(reply_mid, senderID, true, true);
+        break;
       default:
         console.log("Other messages");
 
@@ -165,10 +167,10 @@ function receivedMessage(event) {
  * Given a receientID, look at the last 400+ entries on the
  * spreadsheet and sent the ones that aren't decided to the receipent;
  */
-function getUnreadConfessions(recipientID){
-  googleSheetsApi.getConfessions(
+function getUnreadSubmissions(recipientID){
+  googleSheetsApi.getSubmissions(
     recipientID,
-    googleSheetsApi.lastRead - 400,    GraphApi.wrapMessage,
+    googleSheetsApi.lastRead - 400,
     GraphApi.wrapMessage,
     GraphApi.sendMessageApi,
   );
@@ -179,8 +181,8 @@ function getUnreadConfessions(recipientID){
  * Given a receientID, look at the newest entries since we last fetched
  * submissions.
  */
-function getLatestConfessions(recipientID){
-  googleSheetsApi.getConfessions(
+function getLatestSubmissions(recipientID){
+  googleSheetsApi.getSubmissions(
     recipientID,
     googleSheetsApi.lastRead,
     GraphApi.wrapMessage,
@@ -196,11 +198,11 @@ function getLatestConfessions(recipientID){
  * @param {string} or {integer} recipientID - user who messaged the page.
  * @param {boolean} post - Will this submission be posted.
  */
-function updateSheet(reply_mid, recipientID, post) {
+function updateSheet(reply_mid, recipientID, post, manual) {
   // Is this message replying to anything?
   if (reply_mid){
       GraphApi.getMessageApi(reply_mid)
-      .then((reply_message) => updateSheetHandler(reply_message, post))
+      .then((reply_message) => updateSheetHandler(reply_message, post, manual))
       .catch((err) => console.log("3"+err));
   }
 }
@@ -214,14 +216,15 @@ function updateSheet(reply_mid, recipientID, post) {
  * @param {string} reply_message -  function expects the format
  * `{integer} {string}`
  * @param {boolean} post - Will this submission be posted.
+ * @param {boolean} manual - Does this submission need to be scheduled.
  */
-function updateSheetHandler(reply_message, post) {
+function updateSheetHandler(reply_message, post, manual) {
   // Expects format in `{google sheets row} {confessionSubmission}`
   let id = parseInt(reply_message.substr(0, reply_message.indexOf(' ')));
   reply_message = reply_message.substr(reply_message.indexOf(' ')+1);
-  if (id ){
+  if (id){
     googleSheetsApi.updateConfessionSpreadsheet(id, post).catch((err) => console.log(err));
-    if (post){
+    if (post && !manual){
       getNextScheduledTime()
       .then((timeAndId) => GraphApi.schedulePost(reply_message, timeAndId[0], timeAndId[1]))
       .catch((err) => console.log(err));
