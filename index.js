@@ -7,7 +7,10 @@ const
   https = require('https'),
   config = require("./config"),
   GraphApi = require("./graphApi"),
-  GoogleSheetsApi = require("./googleSheetsApi");
+  GoogleSheetsApi = require("./googleSheetsApi"),
+  WHITELIST = new Set();
+
+  WHITELIST.add("3733183640089011");
 
 
 var app = express();
@@ -122,6 +125,11 @@ function receivedMessage(event) {
   console.log("Received message for user %d and page %d at %d with message:",
     senderID, recipientID, timeOfMessage);
   console.log(JSON.stringify(message));
+
+  if (!WHITELIST.has(senderID)){
+    console.log("Not approved receipent");
+    return;
+  }
 
   var messageId = message.mid;
   var appId = message.app_id;
@@ -261,6 +269,7 @@ async function getNextScheduledTime(){
     var latestMessage = "";
     // First sees if there are already scheduled posts.
     var response = await GraphApi.getScheduledPosts();
+    console.log(response);
     var timeMessage = await findLatestTimes(response);
     // If there are no scheduled post, find the last confession id.
     if (timeMessage.length === 0)
@@ -278,10 +287,16 @@ async function getNextScheduledTime(){
     }
     // Get rid of the # infront.
     var latestMessageId = parseInt(latestMessage.substring(1));
+    var interval = config.pageInterval;
+    if (latestTime - Date.now() > 6.048 * Math.pow(10, 8)){
+      interval = config.smallPageInterval;
+    }
+    console.log(latestTime - Date.now());
     latestTime = new Date(latestTime);
 
     var latestDay = latestTime.getDay();
-    latestTime.setHours(latestTime.getHours() + config.pageInterval);
+
+    latestTime.setHours(latestTime.getHours() + interval);
 
     // If the days are not the same day, then
     // we need to change the hour since this would likely be 1am.
