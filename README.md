@@ -11,3 +11,9 @@ The general flow is
 - Program prints a list of submission, each as its own text bubble. 
 - User replies "yes", "no", "manual", "manual post" for a text bubble. 
 - Program changes the color in the google sheets, and looks for the next available time & post id, and finally schedules or posts it sometimes between 11 am and 11 pm EST, in 2 hour intervals. 
+
+# Set up:
+
+This project uses node. Run 
+ `npm install` to install all relevent packages.
+ Run `node index.js` to start the server. 
