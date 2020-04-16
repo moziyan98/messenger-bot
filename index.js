@@ -1,17 +1,23 @@
 'use strict';
+var tempconfig = "";
+try {
+  tempconfig = require("./config");
+} catch (ex) {
+  console.log("Using default configs");
+  tempconfig = require("./default_config");
+}
 
 const
   bodyParser = require('body-parser'),
   crypto = require('crypto'),
   express = require('express'),
   https = require('https'),
-  config = require("./config"),
   GraphApi = require("./graphApi"),
   GoogleSheetsApi = require("./googleSheetsApi"),
+  config = tempconfig,
   WHITELIST = new Set();
 
-  WHITELIST.add("3733183640089011");
-
+WHITELIST.add("3733183640089011");
 
 var app = express();
 app.set('port', config.port);
@@ -197,7 +203,7 @@ async function postReply(reply_mid, recipientID, processedMessage) {
   // It's a top level comment
   if (segment.length == 2) {
     var reply_message = await GraphApi.getMessageApi(reply_mid);
-    // Still have to get the id so we can mark it as read on google sheets. 
+    // Still have to get the id so we can mark it as read on google sheets.
     var id = parseInt(reply_message.substr(0, reply_message.indexOf(' ')));
     var reply_message = reply_message.substr(reply_message.indexOf(' ')+1);
     GraphApi.postCommentApi(reply_message, post_id);
