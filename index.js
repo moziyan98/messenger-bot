@@ -147,7 +147,8 @@ function receivedMessage(event) {
   var messageText = message.text;
 
   if (messageText) {
-    switch (messageText.replace(/[^\w\s]/gi, '').trim().toLowerCase()) {
+    var processedMessage = messageText.replace(/[^\w\s]/gi, '').trim().toLowerCase();
+    switch (processedMessage) {
       case 'check':
         getLatestSubmissions(senderID);
         break;
@@ -164,10 +165,63 @@ function receivedMessage(event) {
         updateSheet(reply_mid, senderID, true, true);
         break;
       default:
-        console.log("Other messages");
-
+        if (processedMessage.includes("reply"))
+        {
+          postReply(reply_mid, senderID, processedMessage);
+        }
+        else{
+          GraphApi.sendMessageApi(
+            GraphApi.wrapMessage(senderID,
+              "Possible commands: \nyes\nno\ncheck\ncheck unread\nmanual\nreply <number>"));
+        }
     }
   }
+}
+
+/**
+ * Called when user wants to post a submission as a reply to a existing post.
+ * @param {string} reply_mid - the message id that user replies to.
+ * @param {string} or {integer} recipientID - user who messaged the page.
+ * @param {string} processedMessage - The message that user sent, in format
+ * reply <number> <comment thread>?
+ */
+async function postReply(reply_mid, recipientID, processedMessage) {
+  var segment = processedMessage.split(" ");
+  // Should always include a post number.
+  if (segment.length == 1) {
+    GraphApi.sendMessageApi(GraphApi.wrapMessage(recipientID, "Incorrect format"));
+    return;
+  }
+  var response = await GraphApi.getPublishedPosts();
+  var post_id = await search(response, segment[1]);
+  // It's a top level comment
+  if (segment.length == 2) {
+    var reply_message = await GraphApi.getMessageApi(reply_mid);
+    // Still have to get the id so we can mark it as read on google sheets. 
+    var id = parseInt(reply_message.substr(0, reply_message.indexOf(' ')));
+    var reply_message = reply_message.substr(reply_message.indexOf(' ')+1);
+    GraphApi.postCommentApi(reply_message, post_id);
+    googleSheetsApi.updateSpreadsheet(id, true).catch((err) => console.log(err));
+  }
+}
+
+/**
+ * Search for the post id associated with a post submission number.
+ * @param {Object} response - the response from fb's published post api.
+ * @param {string} publishedNumber - the nubmer associated with each post.
+ */
+async function search(response, publishedNumber) {
+  var header = config.pageStart+publishedNumber;
+  var res = "";
+  response.data.forEach(function(post) {
+      if (post.message.includes(header)) {
+        console.log(post.id);
+        res = post.id;
+        // WHY doesn't this return here????????
+        return post.id;
+      }
+  });
+  return res;
 }
 
 /*
@@ -211,7 +265,7 @@ function updateSheet(reply_mid, recipientID, post, manual) {
   if (reply_mid){
       GraphApi.getMessageApi(reply_mid)
       .then((reply_message) => updateSheetHandler(reply_message, post, manual))
-      .catch((err) => console.log("3"+err));
+      .catch((err) => GraphApi.sendMessageApi(GraphApi.wrapMessage(recipientID, "An error occurred: "+ err.message)));
   }
 }
 
@@ -231,7 +285,7 @@ function updateSheetHandler(reply_message, post, manual) {
   let id = parseInt(reply_message.substr(0, reply_message.indexOf(' ')));
   reply_message = reply_message.substr(reply_message.indexOf(' ')+1);
   if (id){
-    googleSheetsApi.updateConfessionSpreadsheet(id, post).catch((err) => console.log(err));
+    googleSheetsApi.updateSpreadsheet(id, post).catch((err) => console.log(err));
     if (post && !manual){
       getNextScheduledTime()
       .then((timeAndId) => GraphApi.schedulePost(reply_message, timeAndId[0], timeAndId[1]))
@@ -269,7 +323,6 @@ async function getNextScheduledTime(){
     var latestMessage = "";
     // First sees if there are already scheduled posts.
     var response = await GraphApi.getScheduledPosts();
-    console.log(response);
     var timeMessage = await findLatestTimes(response);
     // If there are no scheduled post, find the last confession id.
     if (timeMessage.length === 0)

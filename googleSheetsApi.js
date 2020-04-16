@@ -123,7 +123,7 @@ module.exports = class GoogleSheetsApi{
    * @param {string} or {integer} id - Row index
    * @param {boolean} post - To post confession or not.
    */
-  async updateConfessionSpreadsheet(id, post) {
+  async updateSpreadsheet(id, post) {
     // Gray for posted, yellow for not going to be posted.
     let color = post ?
       { red: 153/255, green: 153/255, blue: 153/255}:

@@ -100,7 +100,7 @@ module.exports = class GraphAPi{
       FB.api(
         '/'+config.pageID+'/feed',
         'GET',
-        {"limit":"2"},
+        {"limit":"25"},
         function(response) {
           if (response && !response.error) {
             resolve(response);
@@ -136,6 +136,25 @@ module.exports = class GraphAPi{
         }
       }
     );
+  }
 
+  /*
+   * Call the comment API for a post. The message data goes in the body.
+   * If successful, we'll get the message id in a response
+   */
+  static postCommentApi (messageData, post_id) {
+    FB.setAccessToken(config.pageAccessToken);
+    FB.api(
+      `/${post_id}/comments`,
+      'post',
+      {"message":messageData},
+      function (response) {
+        if (response && !response.error) {
+        }
+        else {
+          console.log(response);
+        }
+      }
+    );
   }
 }
