@@ -2,6 +2,8 @@
 
 This Messenger bot looks for messages from one page, and schedules or posts relevent information to another page. 
 
+Unfortunately, the relevent pages are a secret :) 
+
 The general flow is
 
 - User enters "check" or "check unread". 
